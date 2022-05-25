@@ -75,7 +75,16 @@ Value *lookUpSymbol(Value *symbol, Frame *frame)
   return lookUpSymbol(symbol, frame->parent);
 }
 
-// Valu
+
+Value *evalQuote(Value *tree){
+  if (treeLength(tree) != 1){
+    evaluationError("Error: too many args in quote");
+  }
+  if (tree->type == NULL_TYPE){
+    evaluationError("Error: Quote args");
+  }
+  return tree;
+}
 
 Value *evalIf(Value *args, Frame *frame)
 {
@@ -119,6 +128,48 @@ Value *evalLet(Value *args, Frame *frame)
   return NULL;
 }
 
+Value *apply(Value *function, Value *args){
+  //Construct a new frame whose parent frame is the environment 
+  //stored in the closure.
+  Frame *newFrame = talloc(sizeof(Frame));
+  newFrame->parent = function->cl.frame;
+  //Add bindings to the new frame mapping each formal parameter 
+    //(found in the closure) to the corresponding actual parameter (found in args).
+  Value *bindings = makeNull();
+  Value *names = function->cl.paramNames;
+  Value *body = function->cl.functionCode;
+  while (args->type != NULL_TYPE && names->type != NULL_TYPE) {
+    Value *binding = cons(car(names), car(args));
+    bindings = cons(binding, bindings);
+    names = cdr(names);
+    args = cdr(args);
+  }
+//Evaluate the function body (found in the closure) with the new 
+  //frame as its environment, and return the result of the call to eval.
+  return eval(body, newFrame);
+}
+
+Value *evalDefine(Value *args, Frame *frame){
+  Value *body = cdr(args);
+  if (args->type == NULL_TYPE) {
+    evaluationError("Evaluation error: no arguments");
+  } else if (body->type == NULL_TYPE || car(body)->type == NULL_TYPE) {
+    evaluationError("Evaluation error: no body");
+  } else if (car(args)->type != SYMBOL_TYPE) {
+    evaluationError("Evaluation error: not a symbol");
+  }
+  Value *binding = cons(car(args), eval(car(body), frame));
+  frame->bindings = cons(binding, frame->bindings);
+
+  Value *curr = talloc(sizeof(Value));
+  curr->type = VOID_TYPE;
+  return curr;
+}
+
+Value *evalLambda(Value *args, Frame *frame){
+  return 0;
+}
+
 // tree should just be a single cell
 void print(Value* tree)
 {
@@ -142,8 +193,10 @@ void print(Value* tree)
         printf("#f");
       }
       break;
+    case CLOSURE_TYPE :
+      printf("#<procedure>");
+      break;
     case CONS_TYPE :
-      //printf("(");
       printTree(tree);
       break;
     default :
@@ -199,17 +252,30 @@ Value *eval(Value *tree, Frame *frame)
       {
         return evalIf(cdr(val), frame);
       }
-
+      if (!strcmp(car(val)->s, "quote"))
+      {
+        return evalQuote(cdr(val));
+      }
       if (!strcmp(car(val)->s, "let"))
       {
         return evalLet(cdr(val), frame);
       }
       // .. other special forms here...
-
+      if (!strcmp(car(val)->s, "define")) 
+      {
+          return evalDefine(cdr(val), frame);
+      }
+      if (!strcmp(car(val)->s, "lambda")) 
+      {
+          return evalLambda(cdr(val), frame);
+      }
       else
       {
-        // not a recognized special form
-        evaluationError("Unrecognized symbol");
+        // If not a special form, evaluate the first, evaluate the args, then
+        // apply the first to the args.
+        Value *evaledOperator = eval(car(val), frame);
+        //Value *evaledArgs = evalEach(args, frame);
+        //return apply(evaledOperator,evaledArgs);
       }
       break;
     default:
