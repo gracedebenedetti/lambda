@@ -145,12 +145,12 @@ Value *apply(Value *function, Value *args){
   //Add bindings to the new frame mapping each formal parameter 
     //(found in the closure) to the corresponding actual parameter (found in args).
   Value *bindings = makeNull();
-  Value *names = function->cl.paramNames;
+  Value *pnames = function->cl.paramNames;
   Value *body = function->cl.functionCode;
-  while (args->type != NULL_TYPE && names->type != NULL_TYPE) {
-    Value *binding = cons(car(names), car(args));
+  while (args->type != NULL_TYPE && pnames->type != NULL_TYPE) {
+    Value *binding = cons(car(pnames), car(args));
     bindings = cons(binding, bindings);
-    names = cdr(names);
+    pnames = cdr(pnames);
     args = cdr(args);
   }
   //Evaluate the function body (found in the closure) with the new 
@@ -170,9 +170,9 @@ Value *evalDefine(Value *args, Frame *frame){
   //segfault
   Value *binding = cons(car(args), eval(body, frame));
   frame->bindings = cons(binding, frame->bindings);
-  Value *curr = talloc(sizeof(Value));
-  curr->type = VOID_TYPE;
-  return curr;
+  Value *special = talloc(sizeof(Value));
+  special->type = VOID_TYPE;
+  return special;
 }
 
 Value *evalLambda(Value *args, Frame *frame){
@@ -287,18 +287,19 @@ Value *eval(Value *tree, Frame *frame)
       // .. other special forms here...
       if (!strcmp(car(val)->s, "define")) 
       {
-          return evalDefine(cdr(val), frame);
+        Frame *defineFrame = talloc(sizeof(Frame));
+        return evalDefine(cdr(val), defineFrame);
       }
       if (!strcmp(car(val)->s, "lambda")) 
       {
-          return evalLambda(cdr(val), frame);
+        return evalLambda(cdr(val), frame);
       }
       else
       {
         // If not a special form, evaluate the first, evaluate the args, then
         // apply the first to the args.
-        Value *evaledOperator = eval(car(val), frame);
-        Value *evaledArgs = evalEach(cdr(val), frame);
+        Value *evaledOperator = eval(val, frame);
+        Value *evaledArgs = evalEach(car(cdr(val)), frame);
         return apply(evaledOperator,evaledArgs);
       }
       break;
