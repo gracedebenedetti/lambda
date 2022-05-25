@@ -129,11 +129,12 @@ Value *evalLet(Value *args, Frame *frame)
 }
 
 Value *evalEach(Value *args, Frame *frame){
-  while (car(args) -> type != NULL_TYPE){
-    car(args) = eval(car(args), frame);
+  Value *evaledArgs = makeNull();
+  while (car(args)->type != NULL_TYPE){
+    evaledArgs = cons(eval(car(args), frame), evaledArgs);
     args = cdr(args);
   }
-  return args;
+  return evaledArgs;
 }
 
 Value *apply(Value *function, Value *args){
@@ -152,7 +153,7 @@ Value *apply(Value *function, Value *args){
     names = cdr(names);
     args = cdr(args);
   }
-//Evaluate the function body (found in the closure) with the new 
+  //Evaluate the function body (found in the closure) with the new 
   //frame as its environment, and return the result of the call to eval.
   return eval(body, newFrame);
 }
@@ -166,9 +167,9 @@ Value *evalDefine(Value *args, Frame *frame){
   } else if (car(args)->type != SYMBOL_TYPE) {
     evaluationError("Evaluation error: not a symbol");
   }
-  Value *binding = cons(car(args), eval(car(body), frame));
+  //segfault
+  Value *binding = cons(car(args), eval(body, frame));
   frame->bindings = cons(binding, frame->bindings);
-
   Value *curr = talloc(sizeof(Value));
   curr->type = VOID_TYPE;
   return curr;
@@ -203,6 +204,8 @@ void print(Value* tree)
       break;
     case CLOSURE_TYPE :
       printf("#<procedure>");
+      break;
+    case VOID_TYPE :
       break;
     case CONS_TYPE :
       printTree(tree);
@@ -282,7 +285,7 @@ Value *eval(Value *tree, Frame *frame)
         // If not a special form, evaluate the first, evaluate the args, then
         // apply the first to the args.
         Value *evaledOperator = eval(car(val), frame);
-        Value *evaledArgs = evalEach(args, frame);
+        Value *evaledArgs = evalEach(cdr(val), frame);
         return apply(evaledOperator,evaledArgs);
       }
       break;
