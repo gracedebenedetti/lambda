@@ -128,11 +128,11 @@ Value *evalLet(Value *args, Frame *frame)
   return NULL;
 }
 
-Value *evalEach(args, frame){
-  while (args->type != NULL_TYPE){
-    eval()
-  }
-}
+// Value *evalEach(args, frame){
+//   while (args->type != NULL_TYPE){
+//     eval()
+//   }
+// }
 
 Value *apply(Value *function, Value *args){
   //Construct a new frame whose parent frame is the environment 
@@ -173,6 +173,19 @@ Value *evalDefine(Value *args, Frame *frame){
 }
 
 Value *evalLambda(Value *args, Frame *frame){
+  Value* closure = (Value*)talloc(sizeof(Value));
+  closure->type = CLOSURE_TYPE;
+  closure->cl.frame = frame;
+  if (car(args)->type == NULL_TYPE)
+  {
+    closure->cl.paramNames = makeNull();
+  } else
+  {
+    assert(car(args)->type == CONS_TYPE && "Error, lambda parameter tree is weirdly formatted\n");
+    closure->cl.paramNames = car(args);
+  }
+  closure->cl.functionCode = cdr(args);
+
   return 0;
 }
 
