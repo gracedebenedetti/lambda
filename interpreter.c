@@ -128,10 +128,12 @@ Value *evalLet(Value *args, Frame *frame)
   return NULL;
 }
 
-Value *evalEach(args, frame){
-  while (args->type != NULL_TYPE){
-    eval()
+Value *evalEach(Value *args, Frame *frame){
+  while (car(args) -> type != NULL_TYPE){
+    car(args) = eval(car(args), frame);
+    args = cdr(args);
   }
+  return args;
 }
 
 Value *apply(Value *function, Value *args){
@@ -280,8 +282,8 @@ Value *eval(Value *tree, Frame *frame)
         // If not a special form, evaluate the first, evaluate the args, then
         // apply the first to the args.
         Value *evaledOperator = eval(car(val), frame);
-        //Value *evaledArgs = evalEach(args, frame);
-        //return apply(evaledOperator,evaledArgs);
+        Value *evaledArgs = evalEach(args, frame);
+        return apply(evaledOperator,evaledArgs);
       }
       break;
     default:
