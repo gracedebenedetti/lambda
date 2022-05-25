@@ -128,6 +128,12 @@ Value *evalLet(Value *args, Frame *frame)
   return NULL;
 }
 
+Value *evalEach(args, frame){
+  while (args->type != NULL_TYPE){
+    eval()
+  }
+}
+
 Value *apply(Value *function, Value *args){
   //Construct a new frame whose parent frame is the environment 
   //stored in the closure.
