@@ -205,16 +205,16 @@ Value *apply(Value *function, Value *args){
 }
 
 Value *evalDefine(Value *args, Frame *frame){
-  Value *body = cdr(args);
   if (args->type == NULL_TYPE) {
     evaluationError("Evaluation error: no arguments");
-  } else if (body->type == NULL_TYPE || car(body)->type == NULL_TYPE) {
+  }
+  else if (cdr(args)->type == NULL_TYPE || car(cdr(args))->type == NULL_TYPE) {
     evaluationError("Evaluation error: no body");
   } else if (car(args)->type != SYMBOL_TYPE) {
     evaluationError("Evaluation error: not a symbol");
   }
   //segfault
-  Value *binding = cons(eval(body, frame), makeNull());
+  Value *binding = cons(eval(cdr(args), frame), makeNull());
   binding = cons(car(args), binding);
   binding = cons(binding, makeNull());
   if (frame->bindings->type == NULL_TYPE)
@@ -233,6 +233,13 @@ Value *evalDefine(Value *args, Frame *frame){
 }
 
 Value *evalLambda(Value *args, Frame *frame){
+  if (args->type == NULL_TYPE) {
+    evaluationError("Evaluation Error: empty lambda");
+  } else if (length(args) != 2) {
+    evaluationError("Evaluation Error: parameters or body missing");
+  } else if (car(args)->type == CONS_TYPE && car(car(args))->type != SYMBOL_TYPE) {
+    evaluationError("Evaluation Error: parameters must be symbols");
+  }
   Value* closure = (Value*)talloc(sizeof(Value));
   closure->type = CLOSURE_TYPE;
   closure->cl.frame = frame;
