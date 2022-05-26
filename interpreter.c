@@ -11,11 +11,50 @@
 #include <ctype.h>
 #include "interpreter.h"
 
+
+
 void evaluationError(char *errorMessage)
 {
   printf("Evaluation error: %s\n", errorMessage);
   texit(1);
 }
+
+// tree should just be a single cell
+void print(Value* tree)
+{
+  switch (tree->type) //segfault for let04
+  {
+    case INT_TYPE :
+      printf("%d", tree->i);
+      break;
+    case DOUBLE_TYPE :
+      printf("%lf",tree->d);
+      break;
+    case STR_TYPE :
+      printf("%s",tree->s);
+      break;
+    case BOOL_TYPE :
+      if (tree->i == 1)
+      {
+        printf("#t");
+      } else
+      {
+        printf("#f");
+      }
+      break;
+    case CLOSURE_TYPE :
+      printf("#<procedure>");
+      break;
+    case VOID_TYPE :
+      break;
+    case CONS_TYPE :
+      printTree(tree);
+      break;
+    default :
+      evaluationError("Print error");
+  }
+}
+
 
 // Returns the length of a given tree. Tree should be a list of CONS_TYPEs followed by a NULL_TYPE
 int treeLength(Value *tree)
@@ -130,14 +169,19 @@ Value *evalLet(Value *args, Frame *frame)
 
 Value *evalEach(Value *args, Frame *frame){
   Value *evaledArgs = makeNull();
-  while (car(args)->type != NULL_TYPE){
-    evaledArgs = cons(eval(car(args), frame), evaledArgs);
-    args = cdr(args);
+  Value *cur = args;
+  while (cur->type != NULL_TYPE){
+    evaledArgs = cons(eval(cur, frame), evaledArgs);
+    cur = cdr(cur);
   }
-  return evaledArgs;
+  return reverse(evaledArgs);
 }
 
 Value *apply(Value *function, Value *args){
+  if (args->type == NULL_TYPE)
+  {
+    eval(function->cl.functionCode, function->cl.frame);
+  }
   //Construct a new frame whose parent frame is the environment 
   //stored in the closure.
   Frame *newFrame = talloc(sizeof(Frame));
@@ -148,7 +192,8 @@ Value *apply(Value *function, Value *args){
   Value *pnames = function->cl.paramNames;
   Value *body = function->cl.functionCode;
   while (args->type != NULL_TYPE && pnames->type != NULL_TYPE) {
-    Value *binding = cons(car(pnames), car(args));
+    Value *binding = cons(car(args), makeNull());
+    binding = cons(car(pnames), binding);
     bindings = cons(binding, bindings);
     pnames = cdr(pnames);
     args = cdr(args);
@@ -193,59 +238,7 @@ Value *evalLambda(Value *args, Frame *frame){
   return closure;
 }
 
-// tree should just be a single cell
-void print(Value* tree)
-{
-  switch (tree->type) //segfault for let04
-  {
-    case INT_TYPE :
-      printf("%d", tree->i);
-      break;
-    case DOUBLE_TYPE :
-      printf("%lf",tree->d);
-      break;
-    case STR_TYPE :
-      printf("%s",tree->s);
-      break;
-    case BOOL_TYPE :
-      if (tree->i == 1)
-      {
-        printf("#t");
-      } else
-      {
-        printf("#f");
-      }
-      break;
-    case CLOSURE_TYPE :
-      printf("#<procedure>");
-      break;
-    case VOID_TYPE :
-      break;
-    case CONS_TYPE :
-      printTree(tree);
-      break;
-    default :
-      evaluationError("Print error");
-  }
-}
 
-// calls eval for each top-level S-expression in the program.
-// You should print out any necessary results before moving on to the next S-expression.
-void interpret(Value *tree)
-{
-  Frame *frame = talloc(sizeof(Frame));
-  frame->parent = NULL;
-  frame->bindings = makeNull();
-  // for s-expression in program:
-  Value *curr = tree;
-  while (curr->type != NULL_TYPE)
-  {
-    Value* result = eval(curr,frame);
-    print(result);
-    curr = cdr(curr);
-    printf("\n");
-  }
-}
 
 Value *eval(Value *tree, Frame *frame)
 {
@@ -299,9 +292,9 @@ Value *eval(Value *tree, Frame *frame)
       {
         // If not a special form, evaluate the first, evaluate the args, then
         // apply the first to the args.
-        Value *evaledOperator = eval(val, frame);
-        Value *evaledArgs = evalEach(car(cdr(val)), frame);
-        return apply(evaledOperator,evaledArgs);
+        Value *evaledOperator = eval(val, frame); // this returns a closure
+        Value *evaledArgs = evalEach(cdr(val), frame);
+        return apply(evaledOperator, evaledArgs);
       }
       break;
     default:
@@ -310,6 +303,27 @@ Value *eval(Value *tree, Frame *frame)
   }
   return NULL;
 }
+
+
+// calls eval for each top-level S-expression in the program.
+// You should print out any necessary results before moving on to the next S-expression.
+void interpret(Value *tree)
+{
+  Frame *frame = talloc(sizeof(Frame));
+  frame->parent = NULL;
+  frame->bindings = makeNull();
+  // for s-expression in program:
+  Value *curr = tree;
+  while (curr->type != NULL_TYPE)
+  {
+    Value* result = eval(curr,frame);
+    print(result);
+    curr = cdr(curr);
+    printf("\n");
+  }
+}
+
+
 
 // int main() {
 
