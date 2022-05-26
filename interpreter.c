@@ -153,6 +153,7 @@ Value *apply(Value *function, Value *args){
     names = cdr(names);
     args = cdr(args);
   }
+  newFrame->bindings = bindings;
   //Evaluate the function body (found in the closure) with the new 
   //frame as its environment, and return the result of the call to eval.
   return eval(body, newFrame);
@@ -189,7 +190,7 @@ Value *evalLambda(Value *args, Frame *frame){
   }
   closure->cl.functionCode = cdr(args);
 
-  return 0;
+  return closure;
 }
 
 // tree should just be a single cell
@@ -297,7 +298,7 @@ Value *eval(Value *tree, Frame *frame)
       {
         // If not a special form, evaluate the first, evaluate the args, then
         // apply the first to the args.
-        Value *evaledOperator = eval(car(val), frame);
+        Value *evaledOperator = eval(val, frame);
         Value *evaledArgs = evalEach(cdr(val), frame);
         return apply(evaledOperator,evaledArgs);
       }
