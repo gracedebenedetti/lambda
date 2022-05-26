@@ -214,8 +214,19 @@ Value *evalDefine(Value *args, Frame *frame){
     evaluationError("Evaluation error: not a symbol");
   }
   //segfault
-  Value *binding = cons(car(args), eval(body, frame));
-  frame->bindings = cons(binding, frame->bindings);
+  Value *binding = cons(eval(body, frame), makeNull());
+  binding = cons(car(args), binding);
+  binding = cons(binding, makeNull());
+  if (frame->bindings->type == NULL_TYPE)
+  {
+    frame->bindings = binding;
+  } else
+  {
+    Value* tail = binding;
+    tail->c.cdr = frame->bindings;
+    frame->bindings = binding;
+  }
+  
   Value *special = talloc(sizeof(Value));
   special->type = VOID_TYPE;
   return special;
@@ -281,8 +292,8 @@ Value *eval(Value *tree, Frame *frame)
       // .. other special forms here...
       if (!strcmp(car(val)->s, "define")) 
       {
-        Frame *defineFrame = talloc(sizeof(Frame));
-        return evalDefine(cdr(val), defineFrame);
+        //Frame *defineFrame = talloc(sizeof(Frame));
+        return evalDefine(cdr(val), frame);
       }
       if (!strcmp(car(val)->s, "lambda")) 
       {
